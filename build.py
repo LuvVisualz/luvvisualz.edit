@@ -125,7 +125,10 @@ def html_for(lang):
  en_href = '../' if in_en else 'en/'
  wa_link = 'https://wa.me/' + PHONE + '?text=' + quote(d['waMessage'])
  def hero_lines():
-  return ''.join('<span>'+e(t)+'</span>' if i < 2 else '<em>'+e(t)+' <b class="hero-wink" aria-hidden="true">;)</b></em>' for i,t in enumerate(d['hero']))
+  final_line = e(d['hero'][2])
+  if lang == 'es':
+   final_line = final_line.replace('YO TE LO COCINO', 'YO TE LO <br class="hero-mobile-break">COCINO')
+  return ''.join('<span>'+e(t)+'</span>' for t in d['hero'][:2]) + '<em>' + final_line + ' <b class="hero-wink" aria-hidden="true">;)</b></em>'
  def headline(lines):return f'{e(lines[0])}<br><span>{e(lines[1])}</span>'
  services = ''.join(f'''<article class="service-card reveal"><span class="num">{e(num)} / EDIT</span><div class="service-icon" aria-hidden="true">{e(icon)}</div><h3>{e(head)}</h3><p>{e(desc)}</p></article>''' for num,icon,head,desc in d['services'])
  projects = ''
@@ -149,7 +152,7 @@ def html_for(lang):
 <div class="menu-scrim" data-menu-scrim></div><aside class="menu-panel" id="mobile-menu" data-menu aria-hidden="true"><div class="menu-top">{e(d['navTop'])}</div><nav class="menu-nav" aria-label="{e(d['menu'])}">{nav}</nav><div class="menu-foot"><span>{e(d['navFoot'])}</span><a href="{wa_link}" target="_blank" rel="noopener noreferrer">WhatsApp ↗</a></div></aside>
 <main id="contenido">
 <section class="hero" id="inicio"><div class="hero-grid" aria-hidden="true"></div><div class="hero-glow" aria-hidden="true"></div><div class="wrap"><p class="eyebrow"><strong>◆</strong> {e(d['eyebrow'])}</p><h1>{hero_lines()}</h1><div class="hero-bottom"><div class="hero-offer"><p>{e(d['heroDescription'])}</p><div class="hero-actions"><a class="button" href="{wa_link}" target="_blank" rel="noopener noreferrer">{e(d['cta'])}<b aria-hidden="true">↗</b></a><a class="text-link" href="#trabajos">{e(d['seeWork'])} ↓</a></div></div><div class="hero-aside"><strong>LVZ — EDIT</strong>{e(d['heroAside']).replace(chr(10),'<br>')}</div></div></div><div class="hero-index" aria-hidden="true"><span>LVZ</span><i></i><span>{e(d['heroIndex'])}</span></div></section>
-<div class="ticker" aria-hidden="true"><div class="ticker-track">{ticker}{ticker}</div></div>
+<div class="ticker" aria-hidden="true"><div class="ticker-track">{ticker*8}</div></div>
 <section class="section" id="servicios"><div class="wrap"><div class="section-heading reveal"><div><p class="kicker">{e(d['servicesKicker'])}</p><h2>{headline(d['servicesHeading'])}</h2></div><p class="section-intro">{e(d['servicesIntro'])}</p></div><div class="service-grid">{services}</div><div class="service-foot">{''.join('<span class="pill">'+e(x)+'</span>' for x in d['servicePills'])}</div></div></section>
 <section class="section work" id="trabajos"><div class="wrap"><div class="section-heading reveal"><div><p class="kicker">{e(d['workKicker'])}</p><h2>{headline(d['workHeading'])}</h2></div><p class="section-intro">{e(d['workIntro'])}</p></div><div class="work-grid">{projects}</div><p class="work-note">{e(d['workNote'])}</p></div></section>
 <section class="manifesto"><div class="wrap"><div class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><p>{e(d['manifestoTop'])}</p><h2>{headline(d['manifesto'])}</h2></div></section>
