@@ -22,9 +22,9 @@ COPY = {
  'description':'Edición de vídeo remota y recurrente para agencias, empresas y creadores. Reels, YouTube y contenido corporativo. Editor externo desde Buenos Aires.',
  'skip':'Saltar al contenido', 'logoAlt':'Luv Visualz — Inicio', 'langSwitch':'English', 'langAria':'View in English', 'availability':'Abierto a colaboraciones', 'menu':'Menú', 'menuOpen':'Abrir menú', 'menuClose':'Cerrar menú',
  'navTop':'Navegación / 2026','nav':[('Servicios','servicios'),('Trabajos','trabajos'),('Proceso','proceso'),('Colaboración','colaboracion'),('Contacto','contacto')], 'navFoot':'Edición de vídeo · Remota',
- 'eyebrow':'Luv Visualz / Remote Video Editing', 'hero':['¿TU MATERIAL','ESTÁ CRUDO?','YO TE LO COCINO'],
- 'heroDescription':'Edición de vídeo remota para agencias, empresas y creadores que necesitan publicar con continuidad. Recibo el material, encuentro la historia y entrego piezas listas para usar.',
- 'cta':'Hablemos de una colaboración', 'seeWork':'Ver trabajos', 'heroAside':'Un editor externo.\nUn proceso claro.', 'heroIndex':'REMOTO / 2026',
+ 'eyebrow':'Luv Visualz / Remote Video Editing', 'hero':['¿TU MATERIAL','ESTÁ CRUDO?','YO TE LO','COCINO'],
+ 'heroDescription':'Soy editor de vídeo independiente. Convierto tus grabaciones en piezas listas para publicar, para agencias, marcas y creadores que necesitan edición puntual o recurrente.',
+ 'cta':'Hablemos de tus vídeos', 'seeWork':'Ver trabajos', 'heroAside':'Un editor externo.\nUn proceso claro.', 'heroIndex':'REMOTO / 2026',
  'ticker':['EDIT','DELIVER','REPEAT','CREATE'],
  'servicesKicker':'01 / Qué puedo editar', 'servicesHeading':['EDICIÓN PARA','LO QUE VIENE.'], 'servicesIntro':'Tanto si tienes un equipo de marketing como si necesitas resolver la edición sin ampliar plantilla, puedo integrarme al ritmo de producción que ya tienes.',
  'services':[
@@ -72,8 +72,8 @@ COPY = {
  'skip':'Skip to content', 'logoAlt':'Luv Visualz — Home', 'langSwitch':'Español', 'langAria':'Ver web en español', 'availability':'Open to collaborations', 'menu':'Menu', 'menuOpen':'Open menu', 'menuClose':'Close menu',
  'navTop':'Navigation / 2026','nav':[('Services','servicios'),('Work','trabajos'),('Process','proceso'),('Collaboration','colaboracion'),('Contact','contacto')], 'navFoot':'Video editing · Remote',
  'eyebrow':'Luv Visualz / Remote Video Editing', 'hero':['GOT RAW','FOOTAGE?','I’LL COOK IT'],
- 'heroDescription':'Remote video editing for agencies, businesses and creators who publish consistently. I take your footage, shape the story and deliver finished videos ready to use.',
- 'cta':'Let’s discuss a collaboration', 'seeWork':'Explore the work', 'heroAside':'One external editor.\nOne clear workflow.', 'heroIndex':'REMOTE / 2026',
+ 'heroDescription':'I’m an independent video editor. I turn raw footage into finished videos for agencies, brands and creators — one-off projects or ongoing collaborations.',
+ 'cta':'Let’s talk editing', 'seeWork':'Explore the work', 'heroAside':'One external editor.\nOne clear workflow.', 'heroIndex':'REMOTE / 2026',
  'ticker':['EDIT','DELIVER','REPEAT','CREATE'],
  'servicesKicker':'01 / What I edit', 'servicesHeading':['VIDEO EDITING','FOR WHAT’S NEXT.'], 'servicesIntro':'Whether you run a marketing team or simply want to outsource editing without hiring in-house, I can fit into your existing production workflow.',
  'services':[
@@ -125,10 +125,14 @@ def html_for(lang):
  en_href = '../' if in_en else 'en/'
  wa_link = 'https://wa.me/' + PHONE + '?text=' + quote(d['waMessage'])
  def hero_lines():
-  final_line = e(d['hero'][2])
-  if lang == 'es':
-   final_line = final_line.replace('YO TE LO COCINO', 'YO TE LO <br class="hero-mobile-break">COCINO')
-  return ''.join('<span>'+e(t)+'</span>' for t in d['hero'][:2]) + '<em>' + final_line + ' <b class="hero-wink" aria-hidden="true">;)</b></em>'
+  classes = ['lead','question','bridge','answer'] if lang == 'es' else ['lead','question','answer']
+  def wink():
+   return ('<svg class="hero-wink" viewBox="0 0 130 126" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">'
+           '<path d="M25 17H46L43 39H22Z" fill="currentColor"/>'
+           '<path d="M27 66H49L42 94L17 108L30 84Z" fill="currentColor"/>'
+           '<path d="M73 11L99 32L110 58L104 91L81 114" fill="none" stroke="currentColor" stroke-width="9" stroke-linejoin="miter"/>'
+           '</svg><span class="sr-only"> ;)</span>')
+  return ''.join('<span class="hero-line hero-line--'+classes[i]+'">'+e(t)+(wink() if i==len(d['hero'])-1 else '')+'</span>' for i,t in enumerate(d['hero']))
  def headline(lines):return f'{e(lines[0])}<br><span>{e(lines[1])}</span>'
  services = ''.join(f'''<article class="service-card reveal"><span class="num">{e(num)} / EDIT</span><div class="service-icon" aria-hidden="true">{e(icon)}</div><h3>{e(head)}</h3><p>{e(desc)}</p></article>''' for num,icon,head,desc in d['services'])
  projects = ''
@@ -142,17 +146,17 @@ def html_for(lang):
  faq = ''.join(f'''<details><summary>{e(q)}</summary><p>{e(a)}</p></details>''' for q,a in d['faq'])
  nav = ''.join(f'''<a href="#{e(anchor)}"><small>0{i+1}</small>{e(label)}<b aria-hidden="true">↗</b></a>''' for i,(label,anchor) in enumerate(d['nav']))
  ticker_group = ''.join(f'''<span>{e(item)}</span><i aria-hidden="true">✦</i>''' for item in d['ticker'])
- ticker = '<div class="ticker-group">'+ticker_group*2+'</div>'
+ ticker = '<div class="ticker-group">'+ticker_group+'</div>'
  logo = assets_prefix + 'assets/logo.webp' if (ROOT/'assets/logo.webp').is_file() else BRAND
  brand = f'''<span class="brand-mark"><img src="{e(logo)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-grid'"><span class="brand-letter" aria-hidden="true" style="display:none">LVZ</span></span><span class="brand-name">LUV VISUALZ</span>'''
  return f'''<!DOCTYPE html>
 <html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#07060a"><meta name="color-scheme" content="dark"><meta name="description" content="{e(d['description'])}"><meta property="og:type" content="website"><meta property="og:title" content="{e(d['title'])}"><meta property="og:description" content="{e(d['description'])}"><meta name="twitter:card" content="summary"><meta name="robots" content="index,follow"><title>{e(d['title'])}</title><link rel="stylesheet" href="{assets_prefix}assets/style.css"><script defer src="{assets_prefix}assets/app.js"></script><link rel="preconnect" href="https://luvvisualz.github.io"><link rel="icon" href="{e(logo)}" type="image/webp"><script type="application/ld+json">{{"@context":"https://schema.org","@type":"ProfessionalService","name":"Luv Visualz","description":"Remote video editing and post-production","areaServed":"Worldwide","address":{{"@type":"PostalAddress","addressLocality":"Buenos Aires","addressCountry":"AR"}}}}</script></head>
 <body><a href="#contenido" class="skip">{e(d['skip'])}</a><div class="noise" aria-hidden="true"></div>
-<header class="site-header"><a href="#inicio" class="brand" aria-label="{e(d['logoAlt'])}">{brand}</a><div class="header-side"><a href="{en_href}" hreflang="{'es' if in_en else 'en'}" class="lang" aria-label="{e(d['langAria'])}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.6 5.5 3.6 9S14.5 18.5 12 21c-2.5-2.5-3.6-5.5-3.6-9S9.5 5.5 12 3Z"/></svg>{e(d['langSwitch'])}</a><a href="{wa_link}" target="_blank" rel="noopener noreferrer" class="availability">{e(d['availability'])}</a><button type="button" data-menu-button aria-label="{e(d['menuOpen'])}" aria-expanded="false" aria-controls="mobile-menu" class="menu-toggle"><span class="label">{e(d['menu'])}</span><span class="hamburger" aria-hidden="true"><i></i><i></i></span></button></div></header>
+<header class="site-header"><a href="#inicio" class="brand" aria-label="{e(d['logoAlt'])}">{brand}</a><div class="header-side"><a href="{en_href}" hreflang="{'es' if in_en else 'en'}" class="lang" aria-label="{e(d['langAria'])}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.6 5.5 3.6 9S14.5 18.5 12 21c-2.5-2.5-3.6-5.5-3.6-9S9.5 5.5 12 3Z"/></svg>{e(d['langSwitch'])}</a><button type="button" data-menu-button aria-label="{e(d['menuOpen'])}" aria-expanded="false" aria-controls="mobile-menu" class="menu-toggle"><span class="label">{e(d['menu'])}</span><span class="hamburger" aria-hidden="true"><i></i><i></i></span></button></div></header>
 <div class="menu-scrim" data-menu-scrim></div><aside class="menu-panel" id="mobile-menu" data-menu aria-hidden="true"><div class="menu-top">{e(d['navTop'])}</div><nav class="menu-nav" aria-label="{e(d['menu'])}">{nav}</nav><div class="menu-foot"><span>{e(d['navFoot'])}</span><a href="{wa_link}" target="_blank" rel="noopener noreferrer">WhatsApp ↗</a></div></aside>
 <main id="contenido">
-<section class="hero" id="inicio"><div class="hero-grid" aria-hidden="true"></div><div class="hero-glow" aria-hidden="true"></div><div class="wrap"><p class="eyebrow"><strong>◆</strong> {e(d['eyebrow'])}</p><h1>{hero_lines()}</h1><div class="hero-bottom"><div class="hero-offer"><p>{e(d['heroDescription'])}</p><div class="hero-actions"><a class="button" href="{wa_link}" target="_blank" rel="noopener noreferrer">{e(d['cta'])}<b aria-hidden="true">↗</b></a><a class="text-link" href="#trabajos">{e(d['seeWork'])} ↓</a></div></div><div class="hero-aside"><strong>LVZ — EDIT</strong>{e(d['heroAside']).replace(chr(10),'<br>')}</div></div></div><div class="hero-index" aria-hidden="true"><span>LVZ</span><i></i><span>{e(d['heroIndex'])}</span></div></section>
-<div class="ticker" aria-hidden="true"><div class="ticker-track">{ticker*8}</div></div>
+<section class="hero hero-v3" id="inicio"><div class="hero-grid" aria-hidden="true"></div><div class="hero-glow" aria-hidden="true"></div><div class="hero-geometry" aria-hidden="true"><svg viewBox="0 0 460 560" fill="none"><path d="M220 15L425 150L392 405L165 540L22 350L65 115Z"/><path d="M220 55L386 170L354 377L174 495L66 338L110 145Z"/><path d="M220 15V540M22 350L425 150M65 115L392 405"/><path d="M20 40H140M320 510H450"/></svg></div><div class="wrap"><p class="hero-kicker"><span class="hero-kicker-brand">LUV VISUALZ</span><span class="hero-kicker-divider" aria-hidden="true"></span><span class="hero-kicker-service">REMOTE VIDEO EDITING</span></p><h1 class="hero-heading">{hero_lines()}</h1><div class="hero-bottom"><div class="hero-offer"><p>{e(d['heroDescription'])}</p><div class="hero-actions"><a class="button" href="{wa_link}" target="_blank" rel="noopener noreferrer">{e(d['cta'])}<b aria-hidden="true">↗</b></a><a class="text-link" href="#trabajos">{e(d['seeWork'])} ↓</a></div></div></div></div></section>
+<div class="ticker-frame" aria-hidden="true"><div class="ticker"><div class="ticker-track"><div class="ticker-repeat">{ticker*10}</div><div class="ticker-repeat">{ticker*10}</div></div></div></div>
 <section class="section" id="servicios"><div class="wrap"><div class="section-heading reveal"><div><p class="kicker">{e(d['servicesKicker'])}</p><h2>{headline(d['servicesHeading'])}</h2></div><p class="section-intro">{e(d['servicesIntro'])}</p></div><div class="service-grid">{services}</div><div class="service-foot">{''.join('<span class="pill">'+e(x)+'</span>' for x in d['servicePills'])}</div></div></section>
 <section class="section work" id="trabajos"><div class="wrap"><div class="section-heading reveal"><div><p class="kicker">{e(d['workKicker'])}</p><h2>{headline(d['workHeading'])}</h2></div><p class="section-intro">{e(d['workIntro'])}</p></div><div class="work-grid">{projects}</div><p class="work-note">{e(d['workNote'])}</p></div></section>
 <section class="manifesto"><div class="wrap"><div class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><p>{e(d['manifestoTop'])}</p><h2>{headline(d['manifesto'])}</h2></div></section>
