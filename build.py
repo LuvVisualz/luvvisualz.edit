@@ -22,7 +22,7 @@ COPY = {
  'description':'Edición de vídeo remota y recurrente para agencias, empresas y creadores. Reels, YouTube y contenido corporativo. Editor externo desde Buenos Aires.',
  'skip':'Saltar al contenido', 'logoAlt':'Luv Visualz — Inicio', 'langSwitch':'English', 'langAria':'View in English', 'availability':'Abierto a colaboraciones', 'menu':'Menú', 'menuOpen':'Abrir menú', 'menuClose':'Cerrar menú',
  'navTop':'Navegación / 2026','nav':[('Servicios','servicios'),('Trabajos','trabajos'),('Proceso','proceso'),('Colaboración','colaboracion'),('Contacto','contacto')], 'navFoot':'Edición de vídeo · Remota',
- 'eyebrow':'Editor externo / Buenos Aires → Tu equipo', 'hero':['EL MATERIAL','YA ESTÁ.','LA EDICIÓN, RESUELTA.'],
+ 'eyebrow':'Luv Visualz / Remote Video Editing', 'hero':['¿TU MATERIAL','ESTÁ CRUDO?','YO TE LO COCINO'],
  'heroDescription':'Edición de vídeo remota para agencias, empresas y creadores que necesitan publicar con continuidad. Recibo el material, encuentro la historia y entrego piezas listas para usar.',
  'cta':'Hablemos de una colaboración', 'seeWork':'Ver trabajos', 'heroAside':'Un editor externo.\nUn proceso claro.', 'heroIndex':'REMOTO / 2026',
  'ticker':['EDIT','DELIVER','REPEAT','CREATE'],
@@ -71,7 +71,7 @@ COPY = {
  'description':'Remote video editing for marketing agencies, brands and creators. Reels, YouTube videos and corporate content, with ongoing editing support.',
  'skip':'Skip to content', 'logoAlt':'Luv Visualz — Home', 'langSwitch':'Español', 'langAria':'Ver web en español', 'availability':'Open to collaborations', 'menu':'Menu', 'menuOpen':'Open menu', 'menuClose':'Close menu',
  'navTop':'Navigation / 2026','nav':[('Services','servicios'),('Work','trabajos'),('Process','proceso'),('Collaboration','colaboracion'),('Contact','contacto')], 'navFoot':'Video editing · Remote',
- 'eyebrow':'External editor / Buenos Aires → Your team', 'hero':['YOU HAVE','THE FOOTAGE.','I HANDLE THE EDIT.'],
+ 'eyebrow':'Luv Visualz / Remote Video Editing', 'hero':['GOT RAW','FOOTAGE?','I’LL COOK IT'],
  'heroDescription':'Remote video editing for agencies, businesses and creators who publish consistently. I take your footage, shape the story and deliver finished videos ready to use.',
  'cta':'Let’s discuss a collaboration', 'seeWork':'Explore the work', 'heroAside':'One external editor.\nOne clear workflow.', 'heroIndex':'REMOTE / 2026',
  'ticker':['EDIT','DELIVER','REPEAT','CREATE'],
@@ -125,7 +125,7 @@ def html_for(lang):
  en_href = '../' if in_en else 'en/'
  wa_link = 'https://wa.me/' + PHONE + '?text=' + quote(d['waMessage'])
  def hero_lines():
-  return ''.join(('<span>' if i < 2 else '<em>')+e(t)+('</span>' if i < 2 else '</em>') for i,t in enumerate(d['hero']))
+  return ''.join('<span>'+e(t)+'</span>' if i < 2 else '<em>'+e(t)+' <b class="hero-wink" aria-hidden="true">;)</b></em>' for i,t in enumerate(d['hero']))
  def headline(lines):return f'{e(lines[0])}<br><span>{e(lines[1])}</span>'
  services = ''.join(f'''<article class="service-card reveal"><span class="num">{e(num)} / EDIT</span><div class="service-icon" aria-hidden="true">{e(icon)}</div><h3>{e(head)}</h3><p>{e(desc)}</p></article>''' for num,icon,head,desc in d['services'])
  projects = ''
