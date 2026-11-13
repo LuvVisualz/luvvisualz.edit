@@ -1,0 +1,4 @@
+/* Brand mark: transparent neon monogram, slightly larger for legibility. */
+.brand-mark{width:49px;height:49px}
+@media(max-width:620px){.brand-mark{width:39px;height:39px}}
+.brand-name{position:relative;top:6px}
