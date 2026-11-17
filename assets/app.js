@@ -89,8 +89,73 @@
       volumeWritable = Math.abs(media.volume - 0.46) < 0.01;
       media.volume = original;
     } catch (_) { /* Native volume control only. */ }
-    if (!volumeWritable || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-      volumeControl?.classList.add('no-slider');
+    const volumeUsable = volumeWritable && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (!volumeUsable) volumeControl?.classList.add('no-slider');
+    let volumePinned = false;
+    let volumeDragging = false;
+    let volumeCloseTimer = null;
+    function placeVolume() {
+      if (!volumeUsable || !volumeControl) return;
+      const controls = player.querySelector('.video-controls').getBoundingClientRect();
+      const bounds = player.getBoundingClientRect();
+      const trigger = volumeControl.getBoundingClientRect();
+      const above = trigger.left - bounds.left < 108;
+      volumeControl.classList.toggle('volume-above', above);
+      if (above) {
+        const popupLeft = Math.max(bounds.left + 4, Math.min(trigger.left, bounds.right - 108));
+        volumeControl.style.setProperty('--volume-shift', `${Math.round(popupLeft - trigger.left)}px`);
+        volumeControl.style.setProperty('--volume-clearance', `${Math.ceil(trigger.bottom - controls.top + 4)}px`);
+      }
+    }
+    function openVolume() {
+      if (!volumeUsable) return;
+      clearTimeout(volumeCloseTimer);
+      placeVolume();
+      volumeControl.classList.add('is-open');
+    }
+    function closeVolume() {
+      clearTimeout(volumeCloseTimer);
+      volumeControl?.classList.remove('is-open');
+    }
+    function scheduleVolumeClose() {
+      clearTimeout(volumeCloseTimer);
+      volumeCloseTimer = setTimeout(() => {
+        if (!volumePinned && !volumeDragging && !volumeControl.matches(':hover') &&
+            !volumeControl.querySelector(':focus-visible')) closeVolume();
+      }, 300);
+    }
+    if (volumeUsable) {
+      volumeControl.addEventListener('pointerenter', openVolume);
+      volumeControl.addEventListener('pointerleave', scheduleVolumeClose);
+      volumeControl.addEventListener('focusin', openVolume);
+      volumeControl.addEventListener('focusout', scheduleVolumeClose);
+      volumeControl.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          event.stopPropagation();
+          volumePinned = false;
+          mute.focus();
+          closeVolume();
+        }
+      });
+      volume?.addEventListener('pointerdown', () => {
+        volumeDragging = true;
+        openVolume();
+      });
+      const stopVolumeDrag = () => {
+        if (!volumeDragging) return;
+        volumeDragging = false;
+        scheduleVolumeClose();
+      };
+      document.addEventListener('pointerup', stopVolumeDrag);
+      document.addEventListener('pointercancel', stopVolumeDrag);
+      document.addEventListener('pointerdown', event => {
+        if (!volumeControl.contains(event.target)) {
+          volumePinned = false;
+          if (!volumeDragging) closeVolume();
+        }
+      });
+      window.addEventListener('resize', placeVolume);
+      document.addEventListener('fullscreenchange', placeVolume);
     }
 
     const errorNotice = document.createElement('p');
@@ -221,6 +286,7 @@
     });
 
     mute.addEventListener('click', () => {
+      if (volumeUsable) { volumePinned = !volumePinned; openVolume(); }
       if (media.muted || media.volume === 0) {
         if (media.volume === 0 && volumeWritable) media.volume = lastVolume || 1;
         media.muted = false;
