@@ -60,144 +60,185 @@
   document.querySelectorAll('[data-player]').forEach(player => {
     const media = player.querySelector('video');
     const play = player.querySelector('[data-play]');
+    const coverPlay = player.querySelector('[data-cover-play]');
     const seek = player.querySelector('[data-seek]');
     const time = player.querySelector('[data-time]');
     const mute = player.querySelector('[data-mute]');
+    const volume = player.querySelector('[data-volume]');
+    const volumeControl = player.querySelector('.volume-control');
     const fullscreen = player.querySelector('[data-fullscreen]');
-    const coverPlay = player.querySelector('[data-cover-play]');
-    const quality = player.querySelector('[data-quality]');
     const speed = player.querySelector('[data-speed]');
-    if (!media || !play || !seek || !time || !mute || !fullscreen || !speed) return;
-    if (quality) {
-      quality.hidden = true;
-      player.classList.remove('has-quality');
-      Promise.all([...quality.options].map(option => option.dataset.src
-        ? fetch(option.dataset.src, {method: 'HEAD'}).then(response => response.ok).catch(() => false)
-        : Promise.resolve(false))).then(available => {
-          if (available.every(Boolean)) {
-            quality.hidden = false;
-            player.classList.add('has-quality');
-          }
-        });
+    const quality = player.querySelector('[data-quality]');
+    const frame = player.querySelector('.work-frame');
+    if (!media || !play || !coverPlay || !seek || !time || !mute || !fullscreen || !speed || !frame) return;
+
+    const spanish = document.documentElement.lang === 'es';
+    const label = (es, en) => spanish ? es : en;
+    const stamp = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+    frame.style.setProperty('--video-poster', `url("${media.poster}")`);
+    media.controls = false;
+    let lastVolume = media.volume || 1;
+    let switching = null;
+    let qualityChange = 0;
+
+    // iOS does not allow page controls to change media.volume. In that case only mute remains.
+    let volumeWritable = false;
+    try {
+      const original = media.volume;
+      media.volume = 0.46;
+      volumeWritable = Math.abs(media.volume - 0.46) < 0.01;
+      media.volume = original;
+    } catch (_) { /* Native volume control only. */ }
+    if (!volumeWritable || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      volumeControl?.classList.add('no-slider');
     }
+
     const errorNotice = document.createElement('p');
     errorNotice.className = 'video-error';
     errorNotice.setAttribute('role', 'status');
     errorNotice.hidden = true;
-    player.querySelector('.work-frame').append(errorNotice);
-    media.controls = false;
-    const spanish = document.documentElement.lang === 'es';
-    const clearError = () => {
+    frame.append(errorNotice);
+
+    function updatePlay() {
+      const playing = !media.paused && !media.ended;
+      play.classList.toggle('playing', playing);
+      play.setAttribute('aria-pressed', String(playing));
+      play.setAttribute('aria-label', playing
+        ? label('Pausar video', 'Pause video')
+        : player.classList.contains('has-error')
+          ? label('Reintentar video', 'Retry video')
+          : media.ended ? label('Volver a reproducir video', 'Replay video')
+          : label('Reproducir video', 'Play video'));
+      coverPlay.setAttribute('aria-label', player.classList.contains('has-error')
+        ? label('Reintentar video', 'Retry video') : label('Reproducir video', 'Play video'));
+    }
+    function syncVolume() {
+      const silent = media.muted || media.volume === 0;
+      mute.dataset.volumeState = silent ? 'muted' : media.volume <= 0.5 ? 'low' : 'high';
+      mute.setAttribute('aria-pressed', String(silent));
+      mute.setAttribute('aria-label', silent ? label('Activar sonido', 'Unmute video') : label('Silenciar video', 'Mute video'));
+      if (!silent) lastVolume = media.volume;
+      if (volume) volume.value = String(Math.round(media.volume * 100));
+    }
+    function clearError() {
       player.classList.remove('has-error');
       errorNotice.hidden = true;
       media.controls = false;
-    };
-    const showError = () => {
-      player.classList.add('has-error');
-      player.classList.remove('has-started');
-      errorNotice.textContent = spanish
-        ? 'No se pudo cargar el video. Toca reproducir para reintentar.'
-        : 'Could not load this video. Tap play to try again.';
+      updatePlay();
+    }
+    function showError() {
+      switching = null;
+      if (quality) quality.disabled = false;
+      player.classList.remove('is-loading', 'is-playing');
+      player.classList.add('has-error', 'show-poster');
+      errorNotice.textContent = label('No se pudo cargar el video. Toca reproducir para reintentar.',
+        'Could not load this video. Tap play to try again.');
       errorNotice.hidden = false;
       time.textContent = '—';
       media.controls = false;
-      if (quality) quality.disabled = false;
-      play.textContent = '▶';
-      play.setAttribute('aria-label', spanish ? 'Reintentar video' : 'Retry video');
-      play.setAttribute('aria-pressed', 'false');
-      if (coverPlay) coverPlay.setAttribute('aria-label', spanish ? 'Reintentar video' : 'Retry video');
-    };
-    speed.addEventListener('change', () => {
-      media.playbackRate = Number(speed.value);
-    });
-    media.addEventListener('loadedmetadata', () => {
-      media.playbackRate = Number(speed.value);
-      if (quality) quality.disabled = false;
-    });
-    const stamp = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
-    const requestPlay = () => {
+      updatePlay();
+    }
+    function requestPlay() {
       if (player.classList.contains('has-error')) {
-        const position = Number.isFinite(media.currentTime) ? media.currentTime : 0;
         clearError();
         media.load();
-        if (position) media.addEventListener('loadedmetadata', () => {
-          try { media.currentTime = Math.min(position, Math.max(0, media.duration - 0.1)); }
-          catch (_) { /* The browser may defer seeking. */ }
-        }, {once: true});
       }
-      document.querySelectorAll('[data-player] video').forEach(other => { if (other !== media) other.pause(); });
-      media.play().catch(error => {
-        if (error?.name !== 'AbortError') showError();
+      document.querySelectorAll('[data-player] video').forEach(other => {
+        if (other !== media) other.pause();
       });
-    };
+      media.play().catch(error => {
+        if (error?.name !== 'AbortError' && error?.name !== 'NotAllowedError') showError();
+      });
+    }
     const togglePlay = () => media.paused || media.ended ? requestPlay() : media.pause();
     play.addEventListener('click', togglePlay);
-    coverPlay?.addEventListener('click', togglePlay);
+    coverPlay.addEventListener('click', togglePlay);
     media.addEventListener('click', () => { if (!media.controls) togglePlay(); });
-    media.addEventListener('play', () => {
-      play.textContent = 'Ⅱ';
-      play.setAttribute('aria-label', spanish ? 'Pausar video' : 'Pause video');
-      play.setAttribute('aria-pressed', 'true');
-    });
-    media.addEventListener('canplay', clearError);
+    media.addEventListener('play', updatePlay);
     media.addEventListener('playing', () => {
       clearError();
-      player.classList.add('has-started');
+      player.classList.remove('is-loading', 'show-poster');
+      player.classList.add('is-playing');
+      updatePlay();
     });
     media.addEventListener('pause', () => {
-      play.textContent = '▶';
-      play.setAttribute('aria-label', player.classList.contains('has-error')
-        ? (spanish ? 'Reintentar video' : 'Retry video')
-        : (spanish ? 'Reproducir video' : 'Play video'));
-      play.setAttribute('aria-pressed', 'false');
+      player.classList.remove('is-playing');
+      updatePlay();
     });
     media.addEventListener('ended', () => {
-      player.classList.remove('has-started');
-      play.textContent = '▶';
-      play.setAttribute('aria-label', spanish ? 'Volver a reproducir video' : 'Replay video');
-      play.setAttribute('aria-pressed', 'false');
+      player.classList.remove('is-playing');
+      player.classList.add('show-poster');
+      updatePlay();
     });
     media.addEventListener('timeupdate', () => {
       time.textContent = stamp(media.currentTime);
-      if (Number.isFinite(media.duration) && media.duration > 0) seek.value = String(Math.round(media.currentTime / media.duration * 1000));
+      if (Number.isFinite(media.duration) && media.duration > 0) {
+        seek.value = String(Math.round(media.currentTime / media.duration * 1000));
+      }
     });
-    // Only players with two verified sources expose this control.
-    let qualityChange = 0;
+    seek.addEventListener('input', () => {
+      if (Number.isFinite(media.duration) && media.duration > 0) {
+        media.currentTime = media.duration * Number(seek.value) / 1000;
+      }
+    });
+    speed.addEventListener('change', () => { media.playbackRate = Number(speed.value); });
+    media.addEventListener('loadedmetadata', () => { media.playbackRate = Number(speed.value); });
+
+    function finishSwitch() {
+      if (!switching || !switching.seekComplete || media.seeking || media.readyState < 2) return;
+      const resume = switching.resume;
+      switching = null;
+      quality.disabled = false;
+      player.classList.remove('is-loading');
+      if (resume) requestPlay();
+      else player.classList.remove('show-poster');
+    }
     quality?.addEventListener('change', () => {
       const source = quality.selectedOptions[0]?.dataset.src;
       if (!source || media.getAttribute('src') === source) return;
       const change = ++qualityChange;
       const position = Number.isFinite(media.currentTime) ? media.currentTime : 0;
-      const resume = !media.paused;
-      const rate = Number(speed.value);
+      switching = {resume: !media.paused && !media.ended, change, seekComplete: position === 0};
       media.pause();
-      clearError();
-      player.classList.remove('has-started');
+      player.classList.add('is-loading', 'show-poster');
       quality.disabled = true;
       media.src = source;
       media.load();
-      media.playbackRate = rate;
       media.addEventListener('loadedmetadata', () => {
-        if (change !== qualityChange) return;
-        quality.disabled = false;
-        media.playbackRate = rate;
+        if (!switching || switching.change !== change) return;
+        media.playbackRate = Number(speed.value);
         if (position && Number.isFinite(media.duration)) {
           try { media.currentTime = Math.min(position, Math.max(0, media.duration - 0.1)); }
-          catch (_) { /* Some mobile browsers defer seeking. */ }
+          catch (_) { switching.seekComplete = true; }
         }
-        if (resume) requestPlay();
-      }, {once:true});
+        finishSwitch();
+      }, {once: true});
     });
-    seek.addEventListener('input', () => {
-      if (Number.isFinite(media.duration) && media.duration > 0) media.currentTime = media.duration * Number(seek.value) / 1000;
+    media.addEventListener('canplay', finishSwitch);
+    media.addEventListener('seeked', () => {
+      if (switching) switching.seekComplete = true;
+      finishSwitch();
     });
+
     mute.addEventListener('click', () => {
-      media.muted = !media.muted;
+      if (media.muted || media.volume === 0) {
+        if (media.volume === 0 && volumeWritable) media.volume = lastVolume || 1;
+        media.muted = false;
+      } else {
+        lastVolume = media.volume;
+        media.muted = true;
+      }
+      syncVolume();
     });
-    media.addEventListener('volumechange', () => {
-      mute.textContent = media.muted ? '×' : '◖';
-      mute.setAttribute('aria-label', spanish ? (media.muted ? 'Activar sonido' : 'Silenciar video') : (media.muted ? 'Unmute video' : 'Mute video'));
+    volume?.addEventListener('input', () => {
+      if (!volumeWritable) return;
+      media.volume = Number(volume.value) / 100;
+      media.muted = media.volume === 0;
+      syncVolume();
     });
+    media.addEventListener('volumechange', syncVolume);
+    syncVolume();
+
     const nativeFullscreen = () => {
       if (!media.webkitEnterFullscreen) return;
       media.controls = true;
@@ -208,13 +249,20 @@
       else if (player.requestFullscreen) {
         try { Promise.resolve(player.requestFullscreen()).catch(nativeFullscreen); }
         catch (_) { nativeFullscreen(); }
-      }
-      else nativeFullscreen();
+      } else nativeFullscreen();
+    });
+    document.addEventListener('fullscreenchange', () => {
+      const active = document.fullscreenElement === player;
+      fullscreen.setAttribute('aria-pressed', String(active));
+      fullscreen.setAttribute('aria-label', active
+        ? label('Salir de pantalla completa', 'Exit full screen')
+        : label('Pantalla completa', 'Full screen'));
     });
     media.addEventListener('webkitendfullscreen', () => { media.controls = false; });
     media.addEventListener('error', () => {
       if (media.error?.code !== MediaError.MEDIA_ERR_ABORTED) showError();
     });
+    updatePlay();
   });
 
   const observer = 'IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
