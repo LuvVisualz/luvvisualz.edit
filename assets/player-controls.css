@@ -1,0 +1,29 @@
+/* Player controls only: preserve the portfolio card and frame dimensions. */
+.video-controls .volume-control{grid-area:2/3;position:relative;display:grid;place-items:center;min-width:0;height:34px}
+.video-controls .volume-control [data-mute]{grid-area:auto;display:grid;place-items:center;width:34px;min-width:34px;height:34px}
+.video-controls button svg{display:block;width:20px;height:20px}
+.video-controls [data-play],.video-controls [data-fullscreen]{display:grid;place-items:center}
+.video-controls [data-play-icon="pause"],.video-controls [data-sound-icon]{display:none}
+.video-controls [data-play].playing [data-play-icon="play"]{display:none}
+.video-controls [data-play].playing [data-play-icon="pause"]{display:block}
+.video-controls [data-volume-state="high"] [data-sound-icon="high"],
+.video-controls [data-volume-state="low"] [data-sound-icon="low"],
+.video-controls [data-volume-state="muted"] [data-sound-icon="muted"]{display:block}
+.video-controls .volume-control [data-volume]{position:absolute;z-index:6;bottom:calc(100% + 7px);left:50%;width:100px;height:34px;min-width:100px;margin:0;padding:0 10px;border:1px solid rgba(139,121,255,.65);border-radius:4px;background:#151527;box-shadow:0 5px 18px #050508a8;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(4px);transition:opacity .16s ease,transform .16s ease}
+.video-controls .volume-control:hover [data-volume],
+.video-controls .volume-control:focus-within [data-volume]{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+.video-controls .volume-control.no-slider [data-volume]{display:none}
+.video-controls [data-volume]:focus-visible{outline:2px solid var(--acid);outline-offset:2px}
+.video-player.is-playing [data-cover-play]{display:none}
+.video-player.is-loading .work-frame video,.video-player.show-poster .work-frame video{opacity:0}
+.video-player .work-frame{background-color:#080810;background-image:var(--video-poster);background-size:contain;background-position:center;background-repeat:no-repeat}
+@media(max-width:1250px){
+  .video-controls .volume-control{grid-area:2/1;height:44px}
+  .video-controls .volume-control [data-mute]{width:44px;min-width:44px;height:44px}
+}
+@media(hover:none),(pointer:coarse){
+  .video-controls .volume-control [data-volume]{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .video-controls .volume-control [data-volume]{transition:none}
+}
