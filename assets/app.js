@@ -1,9 +1,54 @@
 (() => {
   'use strict';
+  const header = document.querySelector('.site-header');
   const menuButton = document.querySelector('[data-menu-button]');
   const menu = document.querySelector('[data-menu]');
   const scrim = document.querySelector('[data-menu-scrim]');
   let previousFocus = null;
+  let lastScrollY = Math.max(0, window.scrollY);
+  let scrollTravel = 0;
+  let scrollDirection = 0;
+  let wantsHeader = true;
+  let headerFrame = 0;
+  function updateHeader() {
+    if (!header) return;
+    const y = Math.max(0, window.scrollY);
+    const delta = y - lastScrollY;
+    const direction = Math.sign(delta);
+    const menuOpen = menu?.classList.contains('open');
+    const focusInHeader = !!header.querySelector(':focus-visible');
+    const atTop = y <= 8;
+    if (atTop || menuOpen || focusInHeader) {
+      wantsHeader = true;
+      scrollTravel = 0;
+    } else if (direction) {
+      if (direction !== scrollDirection) scrollTravel = 0;
+      scrollTravel += Math.abs(delta);
+      if (scrollTravel >= 18) {
+        wantsHeader = direction < 0;
+        scrollTravel = 0;
+      }
+    }
+    if (direction) scrollDirection = direction;
+    lastScrollY = y;
+    const height = header.getBoundingClientRect().height;
+    const controlsAtTop = !atTop && !menuOpen && [...document.querySelectorAll('.video-controls')]
+      .some(controls => {
+        const rect = controls.getBoundingClientRect();
+        return rect.top < height && rect.bottom > 0;
+      });
+    header.classList.toggle('header-scrolled', !atTop);
+    header.classList.toggle('header-away', !atTop && !menuOpen && !focusInHeader && (!wantsHeader || controlsAtTop));
+    header.classList.toggle('menu-visible', !!menuOpen);
+  }
+  window.addEventListener('scroll', () => {
+    if (headerFrame) return;
+    headerFrame = requestAnimationFrame(() => { headerFrame = 0; updateHeader(); });
+  }, {passive: true});
+  window.addEventListener('resize', updateHeader);
+  header?.addEventListener('focusin', updateHeader);
+  header?.addEventListener('focusout', () => requestAnimationFrame(updateHeader));
+  updateHeader();
   function setMenu(open) {
     if (!menu || !menuButton || !scrim) return;
     if (open) previousFocus = document.activeElement;
@@ -13,6 +58,7 @@
     menuButton.setAttribute('aria-expanded', String(open));
     menu.setAttribute('aria-hidden', String(!open));
     menu.inert = !open;
+    updateHeader();
     if (open) menu.querySelector('a')?.focus();
     else previousFocus?.focus?.();
   }
@@ -80,6 +126,18 @@
     let lastVolume = media.volume || 1;
     let switching = null;
     let qualityChange = 0;
+    const rates = [1, 1.5, 2];
+    let speedIndex = 0;
+    const speedText = rate => rate === 1.5 && spanish ? '1,5×' : `${rate}×`;
+    function updateSpeed() {
+      const rate = rates[speedIndex];
+      const next = rates[(speedIndex + 1) % rates.length];
+      media.playbackRate = rate;
+      speed.textContent = speedText(rate);
+      speed.setAttribute('aria-label', label(
+        `Velocidad de reproducción: ${speedText(rate)}. Activar ${speedText(next)}`,
+        `Playback speed: ${speedText(rate)}. Switch to ${speedText(next)}`));
+    }
 
     // iOS does not allow page controls to change media.volume. In that case only mute remains.
     let volumeWritable = false;
@@ -246,8 +304,9 @@
         media.currentTime = media.duration * Number(seek.value) / 1000;
       }
     });
-    speed.addEventListener('change', () => { media.playbackRate = Number(speed.value); });
-    media.addEventListener('loadedmetadata', () => { media.playbackRate = Number(speed.value); });
+    speed.addEventListener('click', () => { speedIndex = (speedIndex + 1) % rates.length; updateSpeed(); });
+    media.addEventListener('loadedmetadata', updateSpeed);
+    updateSpeed();
 
     function finishSwitch() {
       if (!switching || !switching.seekComplete || media.seeking || media.readyState < 2) return;
@@ -271,7 +330,7 @@
       media.load();
       media.addEventListener('loadedmetadata', () => {
         if (!switching || switching.change !== change) return;
-        media.playbackRate = Number(speed.value);
+        media.playbackRate = rates[speedIndex];
         if (position && Number.isFinite(media.duration)) {
           try { media.currentTime = Math.min(position, Math.max(0, media.duration - 0.1)); }
           catch (_) { switching.seekComplete = true; }
