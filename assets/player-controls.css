@@ -43,8 +43,8 @@
 
 /* Immediate play acknowledgement, with a delayed spinner inside the existing button. */
 .video-player.play-pending .work-frame [data-cover-play]{border-color:var(--acid);box-shadow:0 0 0 3px #c9ff5329,0 0 18px #c9ff5330}
-.video-player.play-buffering .work-frame [data-cover-play]{display:grid;pointer-events:none}
-.video-player.play-buffering .work-frame [data-cover-play] svg{display:none}
-.video-player.play-buffering .work-frame [data-cover-play]::after{content:"";width:20px;height:20px;border:2px solid #c9ff5363;border-top-color:var(--acid);border-radius:50%;animation:lvz-play-spin .75s linear infinite}
+.video-player.play-buffering .work-frame [data-cover-play],.video-player.is-loading .work-frame [data-cover-play]{display:grid;pointer-events:none}
+.video-player.play-buffering .work-frame [data-cover-play] svg,.video-player.is-loading .work-frame [data-cover-play] svg{display:none}
+.video-player.play-buffering .work-frame [data-cover-play]::after,.video-player.is-loading .work-frame [data-cover-play]::after{content:"";width:20px;height:20px;border:2px solid #c9ff5363;border-top-color:var(--acid);border-radius:50%;animation:lvz-play-spin .75s linear infinite}
 @keyframes lvz-play-spin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.video-player.play-buffering .work-frame [data-cover-play]::after{animation:none}}
+@media(prefers-reduced-motion:reduce){.video-player.play-buffering .work-frame [data-cover-play]::after,.video-player.is-loading .work-frame [data-cover-play]::after{animation:none}}
