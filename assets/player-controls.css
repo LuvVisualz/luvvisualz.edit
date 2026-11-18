@@ -28,3 +28,15 @@
 @media(prefers-reduced-motion:reduce){
   .video-controls .volume-control [data-volume]{transition:none}
 }
+
+/* Cycle playback speed without changing the existing control footprint. */
+.video-controls button[data-speed]{width:100%;min-width:0;height:30px;padding:0 2px;border:1px solid rgba(139,121,255,.5);border-radius:3px;color:#f2eefb;background:#151527;font:11px var(--mono);text-align:center;cursor:pointer}
+.video-controls button[data-speed]:focus-visible{outline:2px solid var(--acid);outline-offset:2px}
+@media(max-width:1250px){.video-controls button[data-speed]{height:44px}}
+
+/* The header is already out of document flow; fixed positioning preserves layout. */
+.site-header{position:fixed;transition:transform .28s ease,background-color .28s ease,box-shadow .28s ease}
+.site-header.header-scrolled{background:rgba(9,7,19,.96);box-shadow:0 8px 28px #05040ba8;backdrop-filter:blur(12px)}
+.site-header.header-away{transform:translateY(-105%)}
+.site-header.menu-visible{z-index:40;transform:none}
+@media(prefers-reduced-motion:reduce){.site-header{transition:none}}
