@@ -126,6 +126,58 @@
     let lastVolume = media.volume || 1;
     let switching = null;
     let qualityChange = 0;
+    let hasPlayed = false;
+    let playPending = false;
+    let playAttempt = 0;
+    let spinnerTimer = null;
+    let loadingTimeout = null;
+    const LOADING_LIMIT_MS = 25000;
+    function clearLoading() {
+      clearTimeout(spinnerTimer);
+      clearTimeout(loadingTimeout);
+      spinnerTimer = null;
+      loadingTimeout = null;
+      playPending = false;
+      player.classList.remove('play-pending', 'play-buffering');
+      play.removeAttribute('aria-busy');
+      coverPlay.removeAttribute('aria-busy');
+    }
+    function scheduleSpinner() {
+      clearTimeout(spinnerTimer);
+      spinnerTimer = setTimeout(() => {
+        if (playPending || (!media.paused && player.classList.contains('is-playing'))) {
+          player.classList.add('play-buffering');
+          updatePlay();
+        }
+      }, 200);
+    }
+    function startPlayPending() {
+      playPending = true;
+      player.classList.add('play-pending');
+      if (!hasPlayed || media.ended) player.classList.add('show-poster');
+      play.setAttribute('aria-busy', 'true');
+      coverPlay.setAttribute('aria-busy', 'true');
+      scheduleSpinner();
+      clearTimeout(loadingTimeout);
+      loadingTimeout = setTimeout(() => {
+        if (playPending) {
+          media.pause();
+          showError();
+        }
+      }, LOADING_LIMIT_MS);
+      updatePlay();
+    }
+    function startBuffering() {
+      if (playPending || media.paused || !hasPlayed) return;
+      scheduleSpinner();
+      clearTimeout(loadingTimeout);
+      loadingTimeout = setTimeout(() => {
+        if (player.classList.contains('play-buffering')) {
+          media.pause();
+          showError();
+        }
+      }, LOADING_LIMIT_MS);
+    }
     const rates = [1, 1.5, 2];
     let speedIndex = 0;
     const speedText = rate => rate === 1.5 && spanish ? '1,5×' : `${rate}×`;
@@ -223,17 +275,20 @@
     frame.append(errorNotice);
 
     function updatePlay() {
-      const playing = !media.paused && !media.ended;
+      const playing = !media.paused && !media.ended && !playPending;
       play.classList.toggle('playing', playing);
       play.setAttribute('aria-pressed', String(playing));
-      play.setAttribute('aria-label', playing
-        ? label('Pausar video', 'Pause video')
+      play.setAttribute('aria-label', playPending
+        ? label('Cargando video', 'Loading video')
+        : playing ? label('Pausar video', 'Pause video')
         : player.classList.contains('has-error')
           ? label('Reintentar video', 'Retry video')
           : media.ended ? label('Volver a reproducir video', 'Replay video')
           : label('Reproducir video', 'Play video'));
-      coverPlay.setAttribute('aria-label', player.classList.contains('has-error')
-        ? label('Reintentar video', 'Retry video') : label('Reproducir video', 'Play video'));
+      coverPlay.setAttribute('aria-label', playPending || player.classList.contains('play-buffering')
+        ? label('Cargando video', 'Loading video')
+        : player.classList.contains('has-error')
+          ? label('Reintentar video', 'Retry video') : label('Reproducir video', 'Play video'));
     }
     function syncVolume() {
       const silent = media.muted || media.volume === 0;
@@ -250,6 +305,7 @@
       updatePlay();
     }
     function showError() {
+      clearLoading();
       switching = null;
       if (quality) quality.disabled = false;
       player.classList.remove('is-loading', 'is-playing');
@@ -262,6 +318,7 @@
       updatePlay();
     }
     function requestPlay() {
+      if (playPending) return;
       if (player.classList.contains('has-error')) {
         clearError();
         media.load();
@@ -269,26 +326,41 @@
       document.querySelectorAll('[data-player] video').forEach(other => {
         if (other !== media) other.pause();
       });
-      media.play().catch(error => {
+      const attempt = ++playAttempt;
+      startPlayPending();
+      Promise.resolve(media.play()).catch(error => {
+        if (attempt !== playAttempt || !playPending) return;
+        clearLoading();
         if (error?.name !== 'AbortError' && error?.name !== 'NotAllowedError') showError();
+        else updatePlay();
       });
     }
-    const togglePlay = () => media.paused || media.ended ? requestPlay() : media.pause();
+    const togglePlay = () => {
+      if (playPending) return;
+      if (media.paused || media.ended) requestPlay();
+      else media.pause();
+    };
     play.addEventListener('click', togglePlay);
     coverPlay.addEventListener('click', togglePlay);
     media.addEventListener('click', () => { if (!media.controls) togglePlay(); });
     media.addEventListener('play', updatePlay);
     media.addEventListener('playing', () => {
+      hasPlayed = true;
+      clearLoading();
       clearError();
       player.classList.remove('is-loading', 'show-poster');
       player.classList.add('is-playing');
       updatePlay();
     });
+    media.addEventListener('waiting', startBuffering);
+    media.addEventListener('stalled', startBuffering);
     media.addEventListener('pause', () => {
+      clearLoading();
       player.classList.remove('is-playing');
       updatePlay();
     });
     media.addEventListener('ended', () => {
+      clearLoading();
       player.classList.remove('is-playing');
       player.classList.add('show-poster');
       updatePlay();
@@ -338,7 +410,10 @@
         finishSwitch();
       }, {once: true});
     });
-    media.addEventListener('canplay', finishSwitch);
+    media.addEventListener('canplay', () => {
+      if (media.paused && !playPending) clearLoading();
+      finishSwitch();
+    });
     media.addEventListener('seeked', () => {
       if (switching) switching.seekComplete = true;
       finishSwitch();
