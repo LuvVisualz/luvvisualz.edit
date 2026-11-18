@@ -131,8 +131,14 @@
     let playAttempt = 0;
     let spinnerTimer = null;
     let loadingTimeout = null;
+    let bufferEpisode = 0;
+    let sourceEpoch = 0;
+    let bufferAnchor = null;
     const LOADING_LIMIT_MS = 25000;
+    const PROGRESS_EPSILON = 0.025;
     function clearLoading() {
+      ++bufferEpisode;
+      bufferAnchor = null;
       clearTimeout(spinnerTimer);
       clearTimeout(loadingTimeout);
       spinnerTimer = null;
@@ -142,10 +148,25 @@
       play.removeAttribute('aria-busy');
       coverPlay.removeAttribute('aria-busy');
     }
+    function clearBuffering() {
+      if (playPending) return;
+      const active = bufferAnchor !== null || player.classList.contains('play-buffering');
+      ++bufferEpisode;
+      bufferAnchor = null;
+      clearTimeout(spinnerTimer);
+      clearTimeout(loadingTimeout);
+      spinnerTimer = null;
+      loadingTimeout = null;
+      player.classList.remove('play-buffering');
+      if (active) updatePlay();
+    }
     function scheduleSpinner() {
       clearTimeout(spinnerTimer);
+      const attempt = playAttempt;
+      const source = sourceEpoch;
       spinnerTimer = setTimeout(() => {
-        if (playPending || (!media.paused && player.classList.contains('is-playing'))) {
+        spinnerTimer = null;
+        if (playPending && attempt === playAttempt && source === sourceEpoch) {
           player.classList.add('play-buffering');
           updatePlay();
         }
@@ -168,15 +189,38 @@
       updatePlay();
     }
     function startBuffering() {
-      if (playPending || media.paused || !hasPlayed) return;
-      scheduleSpinner();
-      clearTimeout(loadingTimeout);
-      loadingTimeout = setTimeout(() => {
-        if (player.classList.contains('play-buffering')) {
+      if (playPending || media.paused || !hasPlayed || switching || media.seeking) return;
+      if (media.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        clearBuffering();
+        return;
+      }
+      if (bufferAnchor !== null) {
+        if (media.currentTime <= bufferAnchor + PROGRESS_EPSILON) return;
+        clearBuffering();
+      }
+      const anchor = media.currentTime;
+      const episode = ++bufferEpisode;
+      const source = sourceEpoch;
+      bufferAnchor = anchor;
+      spinnerTimer = setTimeout(() => {
+        spinnerTimer = null;
+        if (episode !== bufferEpisode || source !== sourceEpoch || playPending || media.paused || switching || media.seeking) return;
+        if (media.currentTime > anchor + PROGRESS_EPSILON || media.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+          clearBuffering();
+          return;
+        }
+        player.classList.add('play-buffering');
+        updatePlay();
+        loadingTimeout = setTimeout(() => {
+          if (episode !== bufferEpisode || source !== sourceEpoch) return;
+          if (media.currentTime > anchor + PROGRESS_EPSILON || media.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+            clearBuffering();
+            return;
+          }
           media.pause();
           showError();
-        }
-      }, LOADING_LIMIT_MS);
+        }, LOADING_LIMIT_MS);
+      }, 200);
     }
     const rates = [1, 1.5, 2];
     let speedIndex = 0;
@@ -366,6 +410,7 @@
       updatePlay();
     });
     media.addEventListener('timeupdate', () => {
+      if (!playPending && bufferAnchor !== null && media.currentTime > bufferAnchor + PROGRESS_EPSILON) clearBuffering();
       time.textContent = stamp(media.currentTime);
       if (Number.isFinite(media.duration) && media.duration > 0) {
         seek.value = String(Math.round(media.currentTime / media.duration * 1000));
@@ -393,6 +438,8 @@
       const source = quality.selectedOptions[0]?.dataset.src;
       if (!source || media.getAttribute('src') === source) return;
       const change = ++qualityChange;
+      ++sourceEpoch;
+      clearLoading();
       const position = Number.isFinite(media.currentTime) ? media.currentTime : 0;
       switching = {resume: !media.paused && !media.ended, change, seekComplete: position === 0};
       media.pause();
@@ -411,10 +458,11 @@
       }, {once: true});
     });
     media.addEventListener('canplay', () => {
-      if (media.paused && !playPending) clearLoading();
+      if (!playPending && media.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) clearBuffering();
       finishSwitch();
     });
     media.addEventListener('seeked', () => {
+      clearBuffering();
       if (switching) switching.seekComplete = true;
       finishSwitch();
     });
