@@ -337,3 +337,8 @@ html[lang] .hero-v3 .hero-heading--new{display:flex;flex-direction:column;align-
 .hero-v3 .hero-heading--new + .hero-bottom{margin-left:0;width:auto;margin-top:30px}
 @media(max-width:900px){html[lang] .hero-v3 .hero-heading--new{font-size:clamp(52px,6vw,85px)}}
 @media(max-width:620px){html[lang] .hero-v3 .hero-heading--new{font-size:clamp(38px,10.8vw,56px);line-height:1.04}.hero-v3 .hero-heading--new .hero-line--promise{font-size:.91em;white-space:normal;text-wrap:balance}.hero-v3 .hero-heading--new .hero-line--relief{font-size:1.04em;margin-top:.13em}.hero-v3 .hero-heading--new + .hero-bottom{margin-top:27px}}
+
+/* Hero readability only: preserve the approved heading and CTA footprint. */
+.hero-v3 .hero-offer p{font-size:clamp(18px,1.3vw,21px);line-height:1.48}
+.hero-v3 .hero-actions .button{font-size:12px;padding-inline:21px}
+@media(max-width:620px){.hero-v3 .hero-offer p{font-size:16.8px;line-height:1.5;letter-spacing:-.02em}.hero-v3 .hero-actions .button{font-size:10.5px;padding-inline:11px}}
