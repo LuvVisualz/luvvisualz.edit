@@ -342,3 +342,6 @@ html[lang] .hero-v3 .hero-heading--new{display:flex;flex-direction:column;align-
 .hero-v3 .hero-offer p{font-size:clamp(18px,1.3vw,21px);line-height:1.48}
 .hero-v3 .hero-actions .button{font-size:12px;padding-inline:21px}
 @media(max-width:620px){.hero-v3 .hero-offer p{font-size:16.8px;line-height:1.5;letter-spacing:-.02em}.hero-v3 .hero-actions .button{font-size:10.5px;padding-inline:11px}}
+
+/* Desktop-only balance for the second hero line; retain its line box. */
+@media(min-width:901px){.hero-v3 .hero-heading--new .hero-line--relief{font-size:1.05em;line-height:1.098}}
